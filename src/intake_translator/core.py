@@ -103,4 +103,4 @@ def analyze_intake(event: Mapping[str, object]) -> dict[str, object]:
         "conflicts": conflicts,
         "questions": questions,
         "source_count": len(sources),
-  }
+    }
