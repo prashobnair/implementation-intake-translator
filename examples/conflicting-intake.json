@@ -1,0 +1,9 @@
+{
+  "schema_version": "1",
+  "event_id": "fictional-nexaflow-deal-001",
+  "sources": {
+    "form": {"customer_name": "Acme Sample Co", "launch_date": "2026-11-02", "seat_count": 75, "region": "India"},
+    "crm": {"customer_name": "Acme Sample Co", "launch_date": "2026-11-16", "seat_count": "75"},
+    "notes": {"region": "India"}
+  }
+}
