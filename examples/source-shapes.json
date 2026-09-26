@@ -1,0 +1,6 @@
+{
+  "_note": "Illustrative fictional source records, NOT vendor webhook payloads. Use the normalized examples/*.json as CLI input.",
+  "form_submission": {"submission_key": "demo-001", "fields": [{"key": "customer_name", "answer": "Marigold Labs"}, {"key": "go_live_date", "answer": "2026-12-01"}, {"key": "licenses", "answer": "40"}, {"key": "region", "answer": "India"}]},
+  "crm_deal_record": {"deal_key": "fictional-deal-001", "properties": {"Account_Name": "Marigold Labs", "Target_Go_Live": "2026-12-15", "Purchased_Seats": 40}},
+  "meeting_notes": {"meeting_key": "fictional-call-001", "decisions": [{"topic": "launch date", "value": "2026-12-01"}, {"topic": "region", "value": "India"}]}
+}
