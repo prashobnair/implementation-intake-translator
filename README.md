@@ -12,7 +12,7 @@ A fictional SaaS implementation handoff, inspired by the operational problem of 
 
 ## How to run and demo
 
-For a five-minute, end-to-end walkthrough, follow `docs/DEMO.md`. **No Zoho or other app trial is needed** for this version: its CRM is a local SQLite mock, not a real service. Python 3.10+ is the only prerequisite. Future live integrations will need separately documented trial account setup and credentials; no real customer system should be connected to this prototype.
+For a five-minute, end-to-end walkthrough, follow `docs/DEMO.md`. For configurable fictional source shapes plus good and bad sample inputs with expected outputs, see `docs/SAMPLE_GALLERY.md` and `examples/`. **No Zoho or other app trial is needed** for this version: its CRM is a local SQLite mock, not a real service. Python 3.10+ is the only prerequisite. Future live integrations will need separately documented trial account setup and credentials; no real customer system should be connected to this prototype.
 
 
 Requires Python 3.10+; runtime is standard-library only. From this repository root:
