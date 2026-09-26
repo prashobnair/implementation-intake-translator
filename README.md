@@ -8,9 +8,12 @@ A fictional SaaS implementation handoff, inspired by the operational problem of 
 - Normalizes whitespace, validates field types and dates, preserves source provenance.
 - Resolves an agreed value but makes conflicting values and missing required facts into human-review questions.
 - Stores an event ID and SHA-256 digest in local SQLite. The same event replays the same packet; a reused ID with changed content fails.
-- Emits a review packet and never auto-approves. A separate local CLI review gate accepts explicit source choices for conflicts; it has no authenticated reviewer or downstream action.
+- Emits a review packet and never auto-approves. A separate local CLI review gate accepts explicit source choices for conflicts. Only after that decision can a local mock CRM project be written.
 
-## Run locally
+## How to run and demo
+
+For a five-minute, end-to-end walkthrough, follow `docs/DEMO.md`. **No Zoho or other app trial is needed** for this version: its CRM is a local SQLite mock, not a real service. Python 3.10+ is the only prerequisite. Future live integrations will need separately documented trial account setup and credentials; no real customer system should be connected to this prototype.
+
 
 Requires Python 3.10+; runtime is standard-library only. From this repository root:
 
@@ -32,4 +35,4 @@ To try the separate local review gate, inspect the packet and follow `docs/REVIE
 
 ## Current limits and next design gate
 
-This increment adds a local HTTP boundary, not a signed webhook or deployable API. It is not yet a mock CRM adapter, authenticated approval workflow, Docker setup or an audited deployment. A local source-selection decision does not establish customer approval, and no downstream side effect occurs. The digest compares raw JSON values after canonical key sorting: normalized semantic equivalents with changed raw values are treated as a changed payload. An event ID is global in V1; a future multi-tenant design must scope it by tenant and authenticate the source before network intake. SQLite is local, not a distributed queue. Future work: signed webhook ingress, tenant scoping, authenticated review and amendments, reconciliation, failure tests, CI, and operating docs. See `docs/ARCHITECTURE.md`.
+This increment adds a local HTTP boundary, not a signed webhook or deployable API. It is not yet a real CRM adapter, authenticated approval workflow, Docker setup or an audited deployment. A local source-selection decision does not establish customer approval; the only downstream write is to a local mock table, never to a customer system. The digest compares raw JSON values after canonical key sorting: normalized semantic equivalents with changed raw values are treated as a changed payload. An event ID is global in V1; a future multi-tenant design must scope it by tenant and authenticate the source before network intake. SQLite is local, not a distributed queue. Future work: signed webhook ingress, tenant scoping, authenticated review and amendments, reconciliation, failure tests, CI, and operating docs. See `docs/ARCHITECTURE.md`.
