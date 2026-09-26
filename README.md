@@ -28,7 +28,7 @@ PYTHONPATH=src python3 -m intake_translator.http_api --db /tmp/intake-http-demo.
 curl -i -H 'Content-Type: application/json' --data-binary @examples/conflicting-intake.json http://127.0.0.1:8765/intakes
 ```
 
-To try the separate local review gate, inspect the packet and follow `docs/REVIEW_GATE.md`. The HTTP adapter binds to `127.0.0.1` only; do not expose or tunnel it. Its routes, response codes and limits are in `docs/HTTP_CONTRACT.md`. Delete demo databases when finished. No work account or external network access is needed.
+To try the separate local review gate, inspect the packet and follow `docs/REVIEW_GATE.md`. The HTTP adapter binds to `127.0.0.1` only and has a bounded body and read timeout; do not expose or tunnel it. Its routes, response codes and limits are in `docs/HTTP_CONTRACT.md`. Delete demo databases when finished. No work account or external network access is needed.
 
 ## Current limits and next design gate
 
