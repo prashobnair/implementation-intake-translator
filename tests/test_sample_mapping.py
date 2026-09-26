@@ -5,7 +5,7 @@ from pathlib import Path
 from intake_translator.core import IntakeError, analyze_intake
 from intake_translator.sample_mapping import map_sample_sources
 
-ROOT = Path(__file__).parents[1] / 'examples' / 'gallery'
+ROOT = Path(__file__).parents[1] / 'examples'
 RAW = json.loads((ROOT / 'source-shapes.json').read_text())
 CONFIG = json.loads((ROOT / 'sample-mapping.json').read_text())
 
