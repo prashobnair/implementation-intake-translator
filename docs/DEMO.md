@@ -1,6 +1,6 @@
 # Five-minute local demo
 
-This walkthrough uses fictional data and a local SQLite mock CRM. It needs Python 3.10+ and no API keys, network connection, Docker or app trials. Run from the repository root. On Windows, use a writable database path such as `demo.sqlite3` rather than `/tmp/...`.
+This walkthrough uses fictional data and a local SQLite mock CRM. For additional good and bad inputs, output cases, and sample form/CRM/notes mapping configuration, see `docs/SAMPLE_GALLERY.md`. It needs Python 3.10+ and no API keys, network connection, Docker or app trials. Run from the repository root. On Windows, use a writable database path such as `demo.sqlite3` rather than `/tmp/...`.
 
 1. Run the tests: `PYTHONPATH=src python3 -m unittest discover -s tests -v`.
 2. Start with a clean demo database: `rm -f /tmp/intake-walkthrough.sqlite3` (or use a new path). Run `PYTHONPATH=src python3 -m intake_translator.cli examples/conflicting-intake.json --db /tmp/intake-walkthrough.sqlite3`. Point out the competing `form` and `crm` launch dates and `needs_review` status.
