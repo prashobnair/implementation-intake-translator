@@ -1,0 +1,8 @@
+{
+  "schema_version": "1",
+  "event_id": "demo-bad-date-001",
+  "sources": {
+    "form": {"customer_name": "Marigold Labs", "launch_date": "2026-02-30", "seat_count": 40},
+    "crm": {"customer_name": "Marigold Labs", "launch_date": "2026-12-01"}
+  }
+}
