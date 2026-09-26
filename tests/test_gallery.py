@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from intake_translator.core import IntakeError, analyze_intake
 
-ROOT = Path(__file__).parents[1] / 'examples' / 'gallery'
+ROOT = Path(__file__).parents[1] / 'examples'
 
 
 class GalleryTests(unittest.TestCase):
