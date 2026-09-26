@@ -2,7 +2,7 @@
 
 This walkthrough uses fictional data and a local SQLite mock CRM. For additional good and bad inputs, output cases, and sample form/CRM/notes mapping configuration, see `docs/SAMPLE_GALLERY.md`. It needs Python 3.10+ and no API keys, network connection, Docker or app trials. Run from the repository root. On Windows, use a writable database path such as `demo.sqlite3` rather than `/tmp/...`.
 
-For a one-command disposable summary instead, run `PYTHONPATH=src python3 -m intake_translator.demo`. It exercises the six samples and both review/write gates and deletes its temporary database. For the narrated manual version:
+For an offline, screen-share-friendly dashboard, run `PYTHONPATH=src python3 -m intake_translator.dashboard` and open the printed `file://` URL. It is a static snapshot from the same synthetic walkthrough; opening it cannot perform review or write actions. Choose another output path with `--output /path/to/demo.html` (a local writable path). For a one-command disposable JSON summary instead, run `PYTHONPATH=src python3 -m intake_translator.demo`. It exercises the six samples and both review/write gates and deletes its temporary database. For the narrated manual version:
 
 1. Run the tests: `PYTHONPATH=src python3 -m unittest discover -s tests -v`.
 2. Start with a clean demo database: `rm -f /tmp/intake-walkthrough.sqlite3` (or use a new path). Run `PYTHONPATH=src python3 -m intake_translator.cli examples/conflicting-intake.json --db /tmp/intake-walkthrough.sqlite3`. Point out the competing `form` and `crm` launch dates and `needs_review` status.
