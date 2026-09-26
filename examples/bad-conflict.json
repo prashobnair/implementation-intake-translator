@@ -1,0 +1,9 @@
+{
+  "schema_version": "1",
+  "event_id": "demo-bad-conflict-001",
+  "sources": {
+    "form": {"customer_name": "Marigold Labs", "launch_date": "2026-12-01", "seat_count": 40},
+    "crm": {"customer_name": "Marigold Labs", "launch_date": "2026-12-15", "seat_count": "40"},
+    "notes": {"region": "India", "launch_date": "2026-12-01"}
+  }
+}
