@@ -8,13 +8,14 @@ from __future__ import annotations
 import argparse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
-from socket import gethostbyname
+import socket
 from typing import Any
 
 from .core import IntakeError
 from .store import process_once
 
 MAX_BODY_BYTES = 16 * 1024
+READ_TIMEOUT_SECONDS = 2
 
 
 class IntakeServer(ThreadingHTTPServer):
@@ -22,12 +23,20 @@ class IntakeServer(ThreadingHTTPServer):
     daemon_threads = True
 
     def __init__(self, address: tuple[str, int], db_path: str):
+        # Keep this demo local even if another caller tries to instantiate it
+        # with a public bind address. Avoid DNS aliases and wildcard addresses.
+        if address[0] != "127.0.0.1":
+            raise ValueError("demo server must bind to 127.0.0.1")
         super().__init__(address, IntakeHandler)
         self.db_path = db_path
 
 
 class IntakeHandler(BaseHTTPRequestHandler):
     server: IntakeServer
+
+    def setup(self) -> None:
+        super().setup()
+        self.connection.settimeout(READ_TIMEOUT_SECONDS)
 
     def _respond(self, status: int, data: dict[str, Any]) -> None:
         body = json.dumps(data, ensure_ascii=False, sort_keys=True).encode("utf-8")
@@ -58,13 +67,24 @@ class IntakeHandler(BaseHTTPRequestHandler):
             return
         size = int(length)
         if size > MAX_BODY_BYTES:
+            self.close_connection = True
             self._respond(413, {"error": "payload_too_large"})
             return
         if size == 0:
             self._respond(400, {"error": "invalid_json"})
             return
         try:
-            data = json.loads(self.rfile.read(size))
+            raw = self.rfile.read(size)
+        except (socket.timeout, TimeoutError):
+            self.close_connection = True
+            self._respond(408, {"error": "request_timeout"})
+            return
+        if len(raw) != size:
+            self.close_connection = True
+            self._respond(400, {"error": "incomplete_body"})
+            return
+        try:
+            data = json.loads(raw)
         except (UnicodeDecodeError, json.JSONDecodeError):
             self._respond(400, {"error": "invalid_json"})
             return
