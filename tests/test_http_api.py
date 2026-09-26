@@ -1,6 +1,8 @@
 import copy
 import http.client
 import json
+import socket
+from unittest.mock import patch
 import tempfile
 import threading
 import unittest
@@ -48,6 +50,27 @@ class HttpTests(unittest.TestCase):
         altered = copy.deepcopy(EXAMPLE)
         altered["sources"]["form"]["seat_count"] = 80
         self.assertEqual(self.post(altered)[0], 409)
+
+    def test_non_loopback_bind_rejected(self):
+        with self.assertRaisesRegex(ValueError, "127.0.0.1"):
+            IntakeServer(("0.0.0.0", 0), str(Path(self.tmp.name) / "unsafe.db"))
+
+    def test_partial_body_times_out_without_persisting_event(self):
+        # A client promises more bytes than it sends. The connection must not
+        # hold a server thread forever, nor persist the incomplete event.
+        import intake_translator.http_api as api
+        with patch.object(api, "READ_TIMEOUT_SECONDS", 0.15):
+            with socket.create_connection(("127.0.0.1", self.server.server_port), timeout=2) as sock:
+                sock.sendall(b"POST /intakes HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nContent-Length: 20\r\nConnection: close\r\n\r\n{}")
+                sock.settimeout(2)
+                response = b""
+                while True:
+                    data = sock.recv(4096)
+                    if not data: break
+                    response += data
+        self.assertIn(b"408 Request Timeout", response)
+        self.assertIn(b'request_timeout', response)
+        self.assertEqual(self.post(EXAMPLE)[0], 201)
 
     def test_validation_and_body_boundaries(self):
         self.assertEqual(self.request("POST", "/intakes", b"{}", {"Content-Type": "text/plain"})[0], 415)
