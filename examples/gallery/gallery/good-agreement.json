@@ -1,9 +1,0 @@
-{
-  "schema_version": "1",
-  "event_id": "demo-good-agreement-001",
-  "sources": {
-    "form": {"customer_name": "Marigold Labs", "launch_date": "2026-12-01", "seat_count": 40, "region": "India"},
-    "crm": {"customer_name": " Marigold Labs ", "launch_date": "2026-12-01", "seat_count": "40", "region": "India"},
-    "notes": {"customer_name": "Marigold Labs", "launch_date": "2026-12-01"}
-  }
-}
