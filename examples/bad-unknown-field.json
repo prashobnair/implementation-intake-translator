@@ -1,0 +1,7 @@
+{
+  "schema_version": "1",
+  "event_id": "demo-bad-unknown-001",
+  "sources": {
+    "form": {"customer_name": "Marigold Labs", "launch_date": "2026-12-01", "unmapped_budget": 20000}
+  }
+}
