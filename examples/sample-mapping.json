@@ -1,0 +1,8 @@
+{
+  "event_id": "demo-mapped-sources-001",
+  "mapping": {
+    "form": {"customer_name": "customer_name", "launch_date": "go_live_date", "seat_count": "licenses", "region": "region"},
+    "crm": {"customer_name": "Account_Name", "launch_date": "Target_Go_Live", "seat_count": "Purchased_Seats"},
+    "notes": {"launch_date": "launch date", "region": "region"}
+  }
+}
