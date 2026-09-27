@@ -6,6 +6,7 @@ import argparse
 import json
 import sqlite3
 import sys
+from contextlib import closing
 from .core import IntakeError
 
 
@@ -21,7 +22,7 @@ def apply_reviewed_intake(
     if not isinstance(event_id, str) or not event_id:
         raise IntakeError("invalid_event_id", "event_id is required")
     try:
-        with sqlite3.connect(db_path, timeout=10) as conn:
+        with closing(sqlite3.connect(db_path, timeout=10)) as conn, conn:
             conn.execute("BEGIN IMMEDIATE")
             row = conn.execute(
                 "SELECT approved_packet_json FROM review_decisions WHERE event_id = ?", (event_id,)
