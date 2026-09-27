@@ -5,6 +5,7 @@ import hashlib
 import json
 import sqlite3
 from collections.abc import Mapping
+from contextlib import closing
 from .core import analyze_intake, IntakeError
 
 
@@ -19,7 +20,7 @@ def process_once(db_path: str, event: Mapping[str, object]) -> tuple[dict[str, o
         raise IntakeError("invalid_event", "event must be JSON-compatible") from exc
     packet = analyze_intake(event)
     digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()
-    with sqlite3.connect(db_path, timeout=10) as conn:
+    with closing(sqlite3.connect(db_path, timeout=10)) as conn, conn:
         conn.execute(
             "CREATE TABLE IF NOT EXISTS processed_events (event_id TEXT PRIMARY KEY, payload_sha256 TEXT NOT NULL, packet_json TEXT NOT NULL)"
         )
