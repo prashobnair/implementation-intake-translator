@@ -23,3 +23,5 @@ All notable changes to this project are documented here. The project follows
 
 ### Added
 - Layered service architecture: FastAPI local adapter and retained stdlib compatibility, tenant-scoped SQLAlchemy models and Alembic 0001 migration preserving v0.2 packets.
+- Tenant-scoped YAML field contracts and synthetic Marigold v2 examples; versioned schema dispatch, optional normalized digest and recorded unanimous non-AI review policy.
+- Strengthen the pure-core import boundary to prohibit imports from legacy service and storage modules as well as the new layers.
