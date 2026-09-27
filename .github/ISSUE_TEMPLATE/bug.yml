@@ -1,0 +1,16 @@
+name: Bug report
+description: Report unexpected behavior using synthetic data
+body:
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Include a minimal synthetic input and expected output.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: How to reproduce
+    validations:
+      required: true

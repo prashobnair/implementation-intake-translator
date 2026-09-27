@@ -1,11 +1,12 @@
 """Generate an offline, read-only screen-share dashboard from fictional cases."""
+
 from __future__ import annotations
 
 import argparse
-from html import escape
-import json
-from pathlib import Path
 import tempfile
+from html import escape
+from pathlib import Path
+from typing import cast
 
 from .demo import walkthrough
 
@@ -32,42 +33,49 @@ h2{font-size:27px;letter-spacing:-.03em;margin:49px 0 8px}.intro{color:#5c7174;l
 def _case_html(name: str, title: str, description: str, result: dict[str, object]) -> str:
     if "error" in result:
         badge, cls = "Rejected", "reject"
-        detail = f'<p><b>{escape(str(result["error"]))}</b>: {escape(str(result["detail"]))}</p><p>No packet was stored. Fix the input and retry.</p>'
+        detail = f"<p><b>{escape(str(result['error']))}</b>: {escape(str(result['detail']))}</p><p>No packet was stored. Fix the input and retry.</p>"
     else:
-        conflicts = result["conflicts"]
-        questions = result["questions"]
+        conflicts = cast(dict[str, list[dict[str, object]]], result["conflicts"])
+        questions = cast(list[str], result["questions"])
         badge, cls = ("Review", "review") if questions else ("Agreement", "agree")
         if conflicts:
             candidates = next(iter(conflicts.values()))
-            lines = ''.join(f'<p><span class="source">{escape(str(c["source"]))}</span> {escape(str(c["value"]))}</p>' for c in candidates)
+            lines = "".join(
+                f'<p><span class="source">{escape(str(c["source"]))}</span> {escape(str(c["value"]))}</p>'
+                for c in candidates
+            )
             detail = f'{lines}<div class="rule"></div><p>{escape(str(questions[0]))}</p>'
         elif questions:
-            detail = f'<p>{escape(str(questions[0]))}</p><p>Required field missing from every source.</p>'
+            detail = f"<p>{escape(str(questions[0]))}</p><p>Required field missing from every source.</p>"
         else:
-            detail = '<p>Resolved launch date: 2026-12-01 · Seats: 40</p><p>No conflicts, but still <b>needs_review</b>.</p>'
+            detail = "<p>Resolved launch date: 2026-12-01 · Seats: 40</p><p>No conflicts, but still <b>needs_review</b>.</p>"
     return f'<article class="case"><div class="case-top"><div><h3>{escape(title)}</h3><p class="desc">{escape(description)}</p></div><span class="pill {cls}">{badge}</span></div><div class="details">{detail}</div></article>'
 
 
 def render_dashboard(results: dict[str, object]) -> str:
     """Return self-contained HTML. Escape every dynamic value from sample data."""
-    samples = results["samples"]
-    cards = ''.join(_case_html(name, title, desc, samples[name]) for name, title, desc in CASES)
-    project = results["mock_project"]
+    samples = cast(dict[str, dict[str, object]], results["samples"])
+    cards = "".join(_case_html(name, title, desc, samples[name]) for name, title, desc in CASES)
+    project = cast(dict[str, object], results["mock_project"])
     project_name = escape(str(project["customer_name"]))
     launch = escape(str(project["launch_date"]))
     source = escape(str(results["selected_source"]))
-    return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>Intake Translator | Local demo</title><style>{STYLE}</style></head>
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>Intake Translator | Local demo</title><style>{STYLE}</style></head>
 <body><header><div class="hero"><div class="eyebrow">Implementation engineering · fictional data</div><h1>Turn messy intake into<br>an explicit decision.</h1><p>Three sample sources disagree. The translator keeps the evidence, stops an unreviewed write, and shows exactly what a reviewer selected. <strong>Offline demo, not a live CRM.</strong></p></div></header>
 <main class="shell"><section class="summary" aria-label="Demo summary"><div class="metric"><b>3</b><span>sample sources</span></div><div class="metric"><b>6</b><span>test scenarios</span></div><div class="metric"><b>1</b><span>explicit review gate</span></div><div class="metric"><b>0</b><span>external writes</span></div></section>
-<section><h2>The path from input to project</h2><p class="intro">This snapshot was generated from the same Python logic as the CLI demo. It is read-only; refreshing it cannot approve or write anything.</p><div class="steps"><div class="panel"><span class="step-number">1</span><h3>Collect and compare</h3><p>Normalize form, CRM and meeting notes. Keep competing launch dates and their source labels instead of picking a winner.</p></div><div class="panel"><span class="step-number">2</span><h3>Require a human choice</h3><p>Before review, the local mock write returns <b>{escape(str(results['before_review']))}</b>. The fictional review chooses <b>{source}</b> for the launch date.</p></div><div class="panel"><span class="step-number">3</span><h3>Write only to the mock</h3><p>One local SQLite mock project is created. Replaying the same decision returns the stored project without a duplicate.</p></div></div></section>
-<section><h2>Inputs and outcomes</h2><p class="intro">Agreement does not mean automatic approval. Conflicts and missing facts become review questions; invalid payloads fail validation.</p><div class="case-grid">{cards}</div><div class="decision"><b>Final local mock project:</b> {project_name} · Launch {launch} · Chosen from {source}. The repeat returned <b>replayed: {str(bool(results['mock_project_replayed'])).lower()}</b>. Temporary database: <b>{escape(str(results['state']))}</b>.</div></section>
-<footer>Fictional examples only. Source-shaped examples are illustrative, not captured vendor payloads. No trial account, API key, external CRM connection or real customer approval is involved. Open docs/SAMPLE_GALLERY.md for the exact input files and expected output.</footer></main></body></html>'''
+<section><h2>The path from input to project</h2><p class="intro">This snapshot was generated from the same Python logic as the CLI demo. It is read-only; refreshing it cannot approve or write anything.</p><div class="steps"><div class="panel"><span class="step-number">1</span><h3>Collect and compare</h3><p>Normalize form, CRM and meeting notes. Keep competing launch dates and their source labels instead of picking a winner.</p></div><div class="panel"><span class="step-number">2</span><h3>Require a human choice</h3><p>Before review, the local mock write returns <b>{escape(str(results["before_review"]))}</b>. The fictional review chooses <b>{source}</b> for the launch date.</p></div><div class="panel"><span class="step-number">3</span><h3>Write only to the mock</h3><p>One local SQLite mock project is created. Replaying the same decision returns the stored project without a duplicate.</p></div></div></section>
+<section><h2>Inputs and outcomes</h2><p class="intro">Agreement does not mean automatic approval. Conflicts and missing facts become review questions; invalid payloads fail validation.</p><div class="case-grid">{cards}</div><div class="decision"><b>Final local mock project:</b> {project_name} · Launch {launch} · Chosen from {source}. The repeat returned <b>replayed: {str(bool(results["mock_project_replayed"])).lower()}</b>. Temporary database: <b>{escape(str(results["state"]))}</b>.</div></section>
+<footer>Fictional examples only. Source-shaped examples are illustrative, not captured vendor payloads. No trial account, API key, external CRM connection or real customer approval is involved. Open docs/SAMPLE_GALLERY.md for the exact input files and expected output.</footer></main></body></html>"""
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--examples", type=Path, default=Path(__file__).resolve().parents[2] / "examples")
-    parser.add_argument("--output", type=Path, default=Path(tempfile.gettempdir()) / "intake-dashboard.html")
+    parser.add_argument(
+        "--examples", type=Path, default=Path(__file__).resolve().parents[2] / "examples"
+    )
+    parser.add_argument(
+        "--output", type=Path, default=Path(tempfile.gettempdir()) / "intake-dashboard.html"
+    )
     args = parser.parse_args()
     results = walkthrough(args.examples)
     output = args.output.expanduser().resolve()

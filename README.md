@@ -1,38 +1,86 @@
 # Implementation Intake Translator
 
-A fictional SaaS implementation handoff, inspired by the operational problem of mismatched form, CRM and meeting-note facts. This is a **local prototype**, not a live integration or production deployment. It never creates a project or contacts a customer.
+Turn conflicting kickoff facts into a reviewable, replay-safe handoff.
+
+[![Python checks](https://github.com/prashobnair/implementation-intake-translator/actions/workflows/python.yml/badge.svg)](https://github.com/prashobnair/implementation-intake-translator/actions/workflows/python.yml) ![Python](https://img.shields.io/badge/Python-3.11--3.13-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Release](https://img.shields.io/badge/release-v0.2.1-informational)
+
+## The problem
+
+A fictional customer, Marigold Labs, has a signed form, a CRM deal and kickoff
+notes that disagree about its launch date. Someone must compare the evidence
+before a project starts, without silently choosing a value or losing the
+original records. This prototype makes that decision visible and keeps a
+repeat delivery from creating a second local mock project.
 
 ## What it does
 
-- Accepts schema-versioned JSON from up to three synthetic sources: form, CRM and notes, via CLI or a loopback-only HTTP adapter.
-- Normalizes whitespace, validates field types and dates, preserves source provenance.
-- Resolves an agreed value but makes conflicting values and missing required facts into human-review questions.
-- Stores an event ID and SHA-256 digest in local SQLite. The same event replays the same packet; a reused ID with changed content fails.
-- Emits a review packet and never auto-approves. A separate local CLI review gate accepts explicit source choices for conflicts. Only after that decision can a local mock CRM project be written.
+- Parses versioned JSON from form, CRM and notes-shaped synthetic inputs.
+- Preserves each candidate and asks for review on disagreement or missing facts.
+- Displays an agreed value using `first_source_priority` (form, CRM, notes);
+  equality is case-insensitive, but display keeps the first source's spelling.
+- Deduplicates by event ID and rejects reuse with changed content.
+- Holds a local mock projection until a reviewer picks a source for each conflict.
+- Provides a disposable demo and static read-only dashboard.
 
-## How to run and demo
+## Quickstart (offline)
 
-For a screen-share dashboard, run `PYTHONPATH=src python3 -m intake_translator.dashboard` from the repository root, then open the printed `file://` URL in a browser. It generates an offline, read-only HTML snapshot of six cases, the review gate and local mock project, and deletes the temporary database. No server or internet access is needed. For a five-minute manual walkthrough, follow `docs/DEMO.md`. For configurable fictional source shapes plus good and bad sample inputs with expected outputs, see `docs/SAMPLE_GALLERY.md` and `examples/`. **No Zoho or other app trial is needed** for this version: its CRM is a local SQLite mock, not a real service. Python 3.10+ is the only prerequisite. Future live integrations will need separately documented trial account setup and credentials; no real customer system should be connected to this prototype.
-
-
-Requires Python 3.10+; runtime is standard-library only. From this repository root, the shortest complete demo is `PYTHONPATH=src python3 -m intake_translator.demo`. It runs every sample, blocks an unreviewed mock write, applies a fictional review decision, creates and replays one local mock project, then deletes its temporary database. For manual steps:
-
-```sh
-PYTHONPATH=src python3 -m intake_translator.cli examples/conflicting-intake.json --db /tmp/intake-demo.sqlite3
-PYTHONPATH=src python3 -m intake_translator.cli examples/conflicting-intake.json --db /tmp/intake-demo.sqlite3
-PYTHONPATH=src python3 -m unittest discover -s tests -v
-```
-
-The second invocation sets `replayed: true`. For the local HTTP demo:
+Python 3.11+ and [uv](https://docs.astral.sh/uv/) are required. No vendor trial
+account or key is needed.
 
 ```sh
-PYTHONPATH=src python3 -m intake_translator.http_api --db /tmp/intake-http-demo.sqlite3 --port 8765
-# In another shell, from the repository root:
-curl -i -H 'Content-Type: application/json' --data-binary @examples/conflicting-intake.json http://127.0.0.1:8765/intakes
+uv sync --python 3.11
+uv run --python 3.11 python -m intake_translator.demo
+uv run --python 3.11 python -m intake_translator.dashboard
 ```
 
-To try the separate local review gate, inspect the packet and follow `docs/REVIEW_GATE.md`. The HTTP adapter binds to `127.0.0.1` only and has a bounded body and read timeout; do not expose or tunnel it. Its routes, response codes and limits are in `docs/HTTP_CONTRACT.md`. Delete demo databases when finished. No work account or external network access is needed.
+The dashboard command prints a local `file://` URL. Open that file to view the
+sample outcomes. For negative inputs and expected outputs see
+[the sample gallery](docs/SAMPLE_GALLERY.md); for manual review steps see
+[the walkthrough](docs/DEMO.md).
 
-## Current limits and next design gate
+## Live mode (read-only)
 
-This increment adds a local HTTP boundary, not a signed webhook or deployable API. It is not yet a real CRM adapter, authenticated approval workflow, Docker setup or an audited deployment. A local source-selection decision does not establish customer approval; the only downstream write is to a local mock table, never to a customer system. The digest compares raw JSON values after canonical key sorting: normalized semantic equivalents with changed raw values are treated as a changed payload. An event ID is global in V1; a future multi-tenant design must scope it by tenant and authenticate the source before network intake. SQLite is local, not a distributed queue. Future work: signed webhook ingress, tenant scoping, authenticated review and amendments, reconciliation, failure tests, and operating docs. A GitHub Actions workflow runs tests and the disposable demo on Python 3.10-3.12; its status depends on GitHub Actions being enabled for this private repo. See `docs/ARCHITECTURE.md`.
+Not available in version 0.2.1. The illustrative CRM source is a JSON fixture,
+not a Zoho connection. A future adapter will require separate setup and verified
+read-only API contracts. Do not connect a work or customer account to this demo.
+
+## How it works
+
+```mermaid
+flowchart LR
+  A[Form, CRM and notes fixtures] --> B[Pure validation and comparison]
+  B --> C[SQLite event ledger]
+  C --> D[Review packet]
+  D --> E[Explicit source decision]
+  E --> F[Local mock project]
+```
+
+The CLI and loopback-only HTTP adapter call the same core. The ledger records a
+canonical payload digest, so an identical delivery replays the stored packet.
+Review and local mock projection are separate operations.
+
+## Engineering decisions
+
+| Decision | Why | Trade-off |
+|---|---|---|
+| Keep the pure core on the standard library | Easy offline install and audit | No production service yet |
+| Preserve candidate provenance | A reviewer sees each source | Conflicts require manual work |
+| Store raw-value digest | Detect changed event ID reuse | Whitespace-only changes are treated as changed |
+| Bind HTTP to loopback | Keep this a local demo | No remote intake |
+
+See [the architecture](docs/ARCHITECTURE.md),
+[offline-first ADR](docs/adr/0001-offline-first.md) and
+[threat model](docs/THREAT_MODEL.md).
+
+## Scope & safety
+
+> Synthetic data only. No Zoho access, external writes, customer messages or
+> automatic approval. The only downstream write is to a disposable local SQLite
+> mock after explicit review. The HTTP adapter has no authentication, so do not
+> expose or tunnel it. There is no production deployment claim.
+
+## Roadmap, contributing and license
+
+Tenant-scoped event IDs, signed webhooks and authenticated review are future work.
+See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md),
+[CHANGELOG.md](CHANGELOG.md) and the [MIT license](LICENSE).
