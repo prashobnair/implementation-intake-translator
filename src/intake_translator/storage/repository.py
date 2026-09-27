@@ -58,6 +58,8 @@ class SqlRepository:
         if packet.get("event_id") != event_id:
             raise IntakeError("invalid_event_id", "packet ID does not match scoped event ID")
         material = packet.get("candidates") if normalized else event
+        if normalized and not isinstance(material, dict):
+            raise IntakeError("invalid_digest", "normalized digest requires candidates")
         raw = json.dumps(
             material, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
         )
