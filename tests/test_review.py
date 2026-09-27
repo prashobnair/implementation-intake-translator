@@ -3,6 +3,7 @@ import json
 import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from intake_translator.core import IntakeError
@@ -36,7 +37,7 @@ class ReviewTests(unittest.TestCase):
         replay, replayed = submit_review(self.db, self.event_id, {"launch_date": "crm"})
         self.assertTrue(replayed)
         self.assertEqual(packet, replay)
-        with sqlite3.connect(self.db) as conn:
+        with closing(sqlite3.connect(self.db)) as conn:
             self.assertEqual(conn.execute("SELECT count(*) FROM review_decisions").fetchone()[0], 1)
 
     def test_missing_required_and_invalid_choices_block(self):
@@ -54,7 +55,7 @@ class ReviewTests(unittest.TestCase):
                 submit_review(self.db, event_id, decisions)
         with self.assertRaisesRegex(IntakeError, "required field"):
             submit_review(self.db, missing["event_id"], {"launch_date": "crm"})
-        with sqlite3.connect(self.db) as conn:
+        with closing(sqlite3.connect(self.db)) as conn:
             self.assertIsNone(
                 conn.execute(
                     "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'review_decisions'"
@@ -75,7 +76,7 @@ class ReviewTests(unittest.TestCase):
                     results.append(exc.code)
         self.assertEqual(sum(isinstance(r, tuple) for r in results), 1)
         self.assertIn("review_conflict", results)
-        with sqlite3.connect(self.db) as conn:
+        with closing(sqlite3.connect(self.db)) as conn:
             self.assertEqual(conn.execute("SELECT count(*) FROM review_decisions").fetchone()[0], 1)
 
     def test_missing_event_cannot_create_approval(self):
