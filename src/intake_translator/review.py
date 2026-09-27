@@ -7,6 +7,7 @@ import json
 import sqlite3
 import sys
 from collections.abc import Mapping
+from contextlib import closing
 from .core import FIELDS, REQUIRED, IntakeError
 
 
@@ -32,7 +33,7 @@ def submit_review(
         raise IntakeError("invalid_review", "decisions must map field names to source names")
     # No table creation here: an absent event is not a new intake.
     try:
-        with sqlite3.connect(db_path, timeout=10) as conn:
+        with closing(sqlite3.connect(db_path, timeout=10)) as conn, conn:
             conn.execute("BEGIN IMMEDIATE")
             row = conn.execute(
                 "SELECT packet_json FROM processed_events WHERE event_id = ?", (event_id,)
