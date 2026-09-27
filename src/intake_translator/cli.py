@@ -1,4 +1,5 @@
 """Local demonstrator: reads synthetic JSON and writes a review packet to stdout."""
+
 import argparse
 import json
 import sys

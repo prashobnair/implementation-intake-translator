@@ -3,6 +3,7 @@
 Not an internet service: it deliberately has no authentication or TLS. Bind only
 127.0.0.1, and do not tunnel this service to other networks.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -58,7 +59,10 @@ class IntakeHandler(BaseHTTPRequestHandler):
         if self.path != "/intakes":
             self._respond(404, {"error": "not_found"})
             return
-        if self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
+        if (
+            self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+            != "application/json"
+        ):
             self._respond(415, {"error": "unsupported_media_type"})
             return
         length = self.headers.get("Content-Length")
@@ -91,8 +95,10 @@ class IntakeHandler(BaseHTTPRequestHandler):
         try:
             packet, replayed = process_once(self.server.db_path, data)
         except IntakeError as exc:
-            self._respond(409 if exc.code == "event_id_reused" else 422,
-                          {"error": exc.code, "detail": exc.detail})
+            self._respond(
+                409 if exc.code == "event_id_reused" else 422,
+                {"error": exc.code, "detail": exc.detail},
+            )
             return
         # A new resource gets 201. Idempotent replay returns 200 with the same packet.
         self._respond(200 if replayed else 201, {**packet, "replayed": replayed})
