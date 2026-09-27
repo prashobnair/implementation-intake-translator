@@ -18,3 +18,8 @@ All notable changes to this project are documented here. The project follows
 
 ### Added
 - Local review gate, mock-CRM projection and offline dashboard.
+
+## [Unreleased]
+
+### Added
+- Layered service architecture: FastAPI local adapter and retained stdlib compatibility, tenant-scoped SQLAlchemy models and Alembic 0001 migration preserving v0.2 packets.
