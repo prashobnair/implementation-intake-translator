@@ -1,0 +1,17 @@
+fields:
+  customer_name: {type: text, required: true, max_len: 200, pii: false, compare: casefold}
+  launch_date: {type: date, required: true, pii: false, compare: date}
+  seat_count: {type: int, required: false, pii: false, compare: numeric}
+  region: {type: text, required: false, max_len: 200, pii: false, compare: casefold}
+  plan_tier: {type: enum, required: false, enum_values: [starter, growth, enterprise], pii: false, compare: casefold}
+  contract_value: {type: money, required: false, pii: false, compare: numeric}
+  primary_contact_email: {type: email, required: false, pii: true, compare: casefold}
+  integrations_in_scope: {type: enum_list, required: false, enum_values: [crm, projects, books], pii: false, compare: exact}
+  data_migration_required: {type: bool, required: false, pii: false, compare: exact}
+sources:
+  form: {priority: 0, trust: human}
+  crm: {priority: 1, trust: system}
+  notes: {priority: 2, trust: human}
+  ai: {priority: 3, trust: ai}
+idempotency: {digest: raw}
+auto_approve_when_unanimous: false
