@@ -2,6 +2,7 @@ import json
 import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from intake_translator.core import IntakeError
@@ -39,7 +40,7 @@ class MockCrmTests(unittest.TestCase):
         submit_review(self.db, self.event_id, {"launch_date": "form"})
         with self.assertRaisesRegex(IntakeError, "failed before commit"):
             apply_reviewed_intake(self.db, self.event_id, fail_before_write=True)
-        with sqlite3.connect(self.db) as conn:
+        with closing(sqlite3.connect(self.db)) as conn:
             self.assertIsNone(
                 conn.execute(
                     "SELECT name FROM sqlite_master WHERE type='table' AND name='mock_projects'"
@@ -57,7 +58,7 @@ class MockCrmTests(unittest.TestCase):
             )
         self.assertEqual(sum(not replayed for _, replayed in results), 1)
         self.assertEqual(len({p["project_id"] for p, _ in results}), 1)
-        with sqlite3.connect(self.db) as conn:
+        with closing(sqlite3.connect(self.db)) as conn:
             self.assertEqual(conn.execute("SELECT count(*) FROM mock_projects").fetchone()[0], 1)
 
 
