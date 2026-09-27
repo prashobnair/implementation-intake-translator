@@ -84,3 +84,9 @@ See [the architecture](docs/ARCHITECTURE.md),
 Tenant-scoped event IDs, signed webhooks and authenticated review are future work.
 See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md),
 [CHANGELOG.md](CHANGELOG.md) and the [MIT license](LICENSE).
+
+## v0.3 architecture migration (in progress)
+
+The new `intake_translator.web.app.create_app(db_path)` offers a FastAPI adapter for the same local synthetic v1 intake packet. It does not enable a public webhook. The stdlib loopback server remains available as `intake_translator.http_api_legacy`; `intake_translator.http_api` is a compatibility alias. Do not expose either unauthenticated demo endpoint to another network.
+
+For a copy of an existing v0.2 local SQLite database, run `DATABASE_URL=sqlite:////absolute/path/to/copy.sqlite3 uv run alembic upgrade head`. Migration `0001` leaves the original ledger and review rows intact; verify the copy before updating an original. The tenant-scoped SQLAlchemy tables are separate, and authenticated tenant ingress remains planned. See [ADR-0002](docs/adr/0002-layered-storage.md).
