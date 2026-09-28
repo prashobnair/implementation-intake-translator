@@ -140,21 +140,23 @@ def normalize(field: Field, value: object) -> str | int | bool | list[str] | Non
     if kind == "int":
         if isinstance(value, bool) or not isinstance(value, (str, int)):
             raise IntakeError("invalid_field", "integer field must be positive")
-        text = str(value).strip()
-        if not text.isdecimal() or int(text) < 1:
+        text = str(value)
+        if not re.fullmatch(r"[0-9]+", text) or int(text) < 1:
             raise IntakeError("invalid_field", "integer field must be positive")
         return int(text)
     if kind in ("money", "decimal"):
         if isinstance(value, bool) or not isinstance(value, (str, int, Decimal)):
             raise IntakeError("invalid_field", "decimal field must be a number")
-        try:
-            number = Decimal(str(value).strip())
-        except InvalidOperation as exc:
-            raise IntakeError("invalid_field", "invalid decimal") from exc
-        if not number.is_finite() or (
-            kind == "money" and (number < 0 or int(number.as_tuple().exponent) < -2)
+        text = str(value)
+        # ASCII digits only; Decimal itself accepts exponent, underscores and Unicode digits.
+        if not re.fullmatch(r"[0-9]+(?:\.[0-9]+)?", text) or (
+            kind == "money" and "." in text and len(text.partition(".")[2]) > 2
         ):
             raise IntakeError("invalid_field", "invalid amount or precision")
+        try:
+            number = Decimal(text)
+        except InvalidOperation as exc:
+            raise IntakeError("invalid_field", "invalid decimal") from exc
         return format(number.normalize(), "f")
     if not isinstance(value, str):
         raise IntakeError("invalid_field", "field must be text")
