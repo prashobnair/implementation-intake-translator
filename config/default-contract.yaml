@@ -1,0 +1,12 @@
+# The v1-compatible tenant contract. Never use real customer data here.
+fields:
+  customer_name: {type: text, required: true, max_len: 200, pii: false, compare: casefold}
+  launch_date: {type: date, required: true, max_len: 10, pii: false, compare: date}
+  seat_count: {type: int, required: false, pii: false, compare: numeric}
+  region: {type: text, required: false, max_len: 200, pii: false, compare: casefold}
+sources:
+  form: {priority: 0, trust: human}
+  crm: {priority: 1, trust: system}
+  notes: {priority: 2, trust: human}
+idempotency: {digest: raw}
+auto_approve_when_unanimous: false
