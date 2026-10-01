@@ -33,14 +33,38 @@ def verify_hmac(
     moment = int(timestamp)
     if abs((int(time.time()) if now is None else now) - moment) > 300:
         return False
+    if not isinstance(signature, str) or not signature.isascii():
+        return False
     if not signature.startswith("sha256=") or len(signature) != 71:
         return False
     message = timestamp.encode("ascii") + b"." + raw
     accepted = False
     for key in secrets_active[:2]:
         expected = hmac.new(key, message, hashlib.sha256).hexdigest()
-        accepted |= hmac.compare_digest(expected, signature[7:])
+        accepted |= constant_time_equal(expected, signature[7:])
     return accepted
+
+
+def constant_time_equal(left: str, right: str) -> bool:
+    """Compare as UTF-8 bytes: compare_digest raises TypeError on non-ASCII str."""
+    return hmac.compare_digest(
+        left.encode("utf-8", "surrogatepass"), right.encode("utf-8", "surrogatepass")
+    )
+
+
+def verify_token(
+    provided: str,
+    configured: str,
+    *,
+    remote_ip: str | None = None,
+    allowlist: frozenset[str] | None = None,
+) -> bool:
+    """Authenticate a shared token before the body is parsed."""
+    if not configured:
+        return False
+    if allowlist is not None and remote_ip not in allowlist:
+        return False
+    return isinstance(provided, str) and constant_time_equal(provided, configured)
 
 
 def verify_shared_token(
@@ -51,11 +75,9 @@ def verify_shared_token(
     remote_ip: str | None = None,
     allowlist: frozenset[str] | None = None,
 ) -> bool:
-    if not configured or not isinstance(event_id, str) or not event_id:
+    if not isinstance(event_id, str) or not event_id:
         return False
-    if allowlist is not None and remote_ip not in allowlist:
-        return False
-    return isinstance(provided, str) and hmac.compare_digest(provided, configured)
+    return verify_token(provided, configured, remote_ip=remote_ip, allowlist=allowlist)
 
 
 def parse_bounded_json(raw: bytes, *, limit: int = 16 * 1024, max_depth: int = 20) -> object:
