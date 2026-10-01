@@ -419,3 +419,80 @@ def test_sec5_default_and_transcript_body_cap_exact(tmp_path):
 def test_sec2_hmac_non_ascii_timestamp_denied():
     assert verify_hmac(b"{}", "١٠٠٠", "sha256=" + "0" * 64, (b"key",), now=1000) is False
     assert verify_hmac(b"{}", "9" * 10000, "sha256=" + "0" * 64, (b"key",), now=1000) is False
+
+
+def _raw_post(client, body, headers):
+    return client.post(
+        "/v1/tenants/tenant-a/webhooks/form",
+        content=body,
+        headers={"Content-Type": "application/json", **headers},
+    )
+
+
+def test_sec2_non_ascii_credentials_return_exactly_401(tmp_path):
+    repository = repo(tmp_path)
+    client = TestClient(app_client(repository).app, raise_server_exceptions=False)
+    body = event_bytes()
+    latin = "tést".encode("latin-1")
+    token = _raw_post(client, body, {"X-Intake-Token": latin})
+    signature = _raw_post(
+        client,
+        body,
+        {
+            "X-Intake-Timestamp": "1000",
+            "X-Intake-Signature": b"sha256=" + "é".encode("latin-1") * 64,
+        },
+    )
+    bearer = _raw_post(client, body, {"Authorization": b"Bearer " + "é".encode("latin-1") * 20})
+    assert [r.status_code for r in (token, signature, bearer)] == [401, 401, 401]
+    assert token.json() == {"detail": "unauthorized"}
+    assert verify_hmac(b"{}", "1000", "sha256=" + "é" * 64, (b"key",), now=1000) is False
+    repository.engine.dispose()
+
+
+@pytest.mark.parametrize(
+    ("body", "label"),
+    [
+        (b"{not json", "invalid_json"),
+        (b"[" * 30 + b"]" * 30, "too_deep"),
+        (b'{"schema_version":"2","sources":{}}', "missing_event_id"),
+    ],
+)
+def test_sec2_authenticate_before_parse_returns_exactly_401(tmp_path, body, label):
+    repository = repo(tmp_path)
+    client = TestClient(app_client(repository).app, raise_server_exceptions=False)
+    for headers in ({}, {"X-Intake-Token": "wrong"}, {"Authorization": "Bearer nope"}):
+        response = _raw_post(client, body, headers)
+        assert (response.status_code, response.json()) == (401, {"detail": "unauthorized"}), label
+    # Authenticated callers still see the parse and validation errors.
+    ok = {"X-Intake-Token": "tenant-a-token"}
+    assert (
+        _raw_post(client, body, ok).status_code
+        == {"invalid_json": 400, "too_deep": 400, "missing_event_id": 422}[label]
+    )
+    repository.engine.dispose()
+
+
+def test_sec_raw_ledger_failure_leaves_no_processed_event(tmp_path, monkeypatch):
+    from intake_translator.storage.schema import ProcessedEvent
+
+    repository = repo(tmp_path)
+    client = TestClient(app_client(repository).app, raise_server_exceptions=False)
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("injected ledger failure")
+
+    monkeypatch.setattr("intake_translator.ingress.api.append_raw", boom)
+    response = post(client, event_bytes("evt-fail"), token="tenant-a-token")
+    assert response.status_code == 500
+    with Session(repository.engine) as session:
+        assert session.scalars(select(ProcessedEvent)).all() == []
+        assert session.scalars(select(RawEvent)).all() == []
+    monkeypatch.undo()
+    assert post(client, event_bytes("evt-fail"), token="tenant-a-token").status_code == 201
+    with Session(repository.engine) as session:
+        processed = session.scalars(select(ProcessedEvent)).all()
+        raws = session.scalars(select(RawEvent)).all()
+        assert [p.event_id for p in processed] == ["evt-fail"]
+        assert [r.event_id for r in raws] == ["evt-fail"]
+    repository.engine.dispose()
