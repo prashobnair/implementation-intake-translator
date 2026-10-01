@@ -26,7 +26,7 @@ def issue_key(engine: Engine, tenant_id: str) -> tuple[str, str]:
 
 
 def verify_key(engine: Engine, tenant_id: str, secret: str) -> bool:
-    if not tenant_id or not isinstance(secret, str) or len(secret) < 13:
+    if not tenant_id or not isinstance(secret, str) or len(secret) < 13 or not secret.isascii():
         return False
     with Session(engine) as session:
         row = session.get(MachineKey, (tenant_id, secret[:12]))
