@@ -81,6 +81,16 @@ See [the architecture](docs/ARCHITECTURE.md),
 
 ## Roadmap, contributing and license
 
-Tenant-scoped event IDs, signed webhooks and authenticated review are future work.
+Tenant-scoped event IDs and a separately configured authenticated ingress are included; authenticated human review remains future work.
 See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md),
 [CHANGELOG.md](CHANGELOG.md) and the [MIT license](LICENSE).
+
+## v0.3 architecture migration (in progress)
+
+The new `intake_translator.web.app.create_app(db_path)` offers a FastAPI adapter for the same local synthetic v1 intake packet. It does not enable a public webhook. The stdlib loopback server remains available as `intake_translator.http_api_legacy`; `intake_translator.http_api` is a compatibility alias. Do not expose either unauthenticated demo endpoint to another network.
+
+For a copy of an existing v0.2 local SQLite database, run `DATABASE_URL=sqlite:////absolute/path/to/copy.sqlite3 uv run alembic upgrade head`. Migration `0001` leaves the original ledger and review rows intact; verify the copy before updating an original. The tenant-scoped SQLAlchemy tables are separate, and authenticated tenant ingress remains planned. See [ADR-0002](docs/adr/0002-layered-storage.md).
+
+## Tenant field contracts (v0.3 work in progress)
+
+A local tenant contract describes typed fields, source display order and trust. See [the v1-compatible default](config/default-contract.yaml) and [the synthetic Marigold v2 example](config/marigold-contract.yaml). `field_service.process_contract_event` keeps version 1 packet logic intact; version 2 uses the tenant's YAML contract. The default digest remains raw (whitespace changes conflict), while `normalized` replays equivalent normalized candidates. Automatic approval is off by default and records a versioned `system:unanimous-policy` review only when required fields agree and no AI source participates. Neither route triggers a live CRM action. A separate `ingress.api.create_ingress_app` accepts authenticated synthetic webhook POSTs when a tenant contract, per-source HMAC/shared token or tenant API key, and a Fernet key are provisioned. It is not a turnkey public deployment: TLS, secret delivery, proxy limits, a distributed rate limiter, scheduled retention purge and authenticated reviewer UI still need deployment work. For local tests, run `uv run pytest -q tests/test_security_exact.py`. Do not put real tokens or customer data in fixtures. Zoho CRM's documented POST supports a custom static-token header, not URL parameters; see [API contracts](docs/API_CONTRACTS.md) and [ADR-0003](docs/adr/0003-zoho-webhook-auth.md).
