@@ -18,7 +18,7 @@ from ..field_service import process_contract_event
 from ..storage.machine_keys import verify_key
 from ..storage.raw import append_raw
 from ..storage.repository import SqlRepository
-from .security import TokenBucket, parse_bounded_json, verify_hmac, verify_shared_token
+from .security import TokenBucket, parse_bounded_json, verify_hmac, verify_token
 
 
 @dataclass(frozen=True)
@@ -83,19 +83,6 @@ def create_ingress_app(
             raw = await asyncio.wait_for(read_bounded(), timeout=request_timeout)
         except TimeoutError as exc:
             raise HTTPException(status_code=408, detail="request_timeout") from exc
-        try:
-            event = parse_bounded_json(raw, limit=policy.max_body_bytes, max_depth=max_json_depth)
-        except IntakeError as exc:
-            raise HTTPException(
-                status_code=413 if exc.code == "payload_too_large" else 400, detail=exc.code
-            ) from exc
-        if (
-            not isinstance(event, dict)
-            or not isinstance(event.get("event_id"), str)
-            or not event["event_id"]
-        ):
-            raise HTTPException(status_code=422, detail="invalid_event_id")
-        event_id = event["event_id"]
         mode: Literal["hmac", "shared_token", "api_key"]
         timestamp = request.headers.get("x-intake-timestamp", "")
         signature = request.headers.get("x-intake-signature", "")
@@ -110,10 +97,9 @@ def create_ingress_app(
         elif header_token or query_token:
             if header_token and query_token and header_token != query_token:
                 raise HTTPException(status_code=401, detail="unauthorized")
-            if not verify_shared_token(
+            if not verify_token(
                 header_token or query_token,
                 policy.shared_token or "",
-                event_id,
                 remote_ip=remote_ip,
                 allowlist=policy.allowed_ips,
             ):
@@ -126,7 +112,21 @@ def create_ingress_app(
         if not limiter.allow(tenant_id):
             raise HTTPException(status_code=429, detail="rate_limited")
         try:
-            packet, replayed = process_contract_event(repo, tenant_id, source, event, contracts)
+            event = parse_bounded_json(raw, limit=policy.max_body_bytes, max_depth=max_json_depth)
+        except IntakeError as exc:
+            raise HTTPException(
+                status_code=413 if exc.code == "payload_too_large" else 400, detail=exc.code
+            ) from exc
+        if (
+            not isinstance(event, dict)
+            or not isinstance(event.get("event_id"), str)
+            or not event["event_id"]
+        ):
+            raise HTTPException(status_code=422, detail="invalid_event_id")
+        event_id = event["event_id"]
+        try:
+            # Raw row first: a ledger failure leaves nothing processed, so no processed
+            # event can exist without its raw record. Rejected events keep an audit row.
             raw_id = append_raw(
                 engine,
                 tenant_id=tenant_id,
@@ -136,6 +136,7 @@ def create_ingress_app(
                 auth_mode=mode,
                 key=encryption_key,
             )
+            packet, replayed = process_contract_event(repo, tenant_id, source, event, contracts)
         except IntakeError as exc:
             code = 409 if exc.code == "event_id_reused" else 422
             raise HTTPException(status_code=code, detail=exc.code) from exc
