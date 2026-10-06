@@ -21,7 +21,22 @@ All notable changes to this project are documented here. The project follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-01
+
 ### Added
-- Layered service architecture: FastAPI local adapter and retained stdlib compatibility, tenant-scoped SQLAlchemy models and Alembic 0001 migration preserving v0.2 packets.
-- Tenant-scoped YAML field contracts and synthetic Marigold v2 examples; versioned schema dispatch, optional normalized digest and recorded unanimous non-AI review policy.
-- Strengthen the pure-core import boundary to prohibit imports from legacy service and storage modules as well as the new layers.
+- Layered service architecture: a local FastAPI adapter alongside the stdlib server, tenant-scoped SQLAlchemy storage, and an Alembic migration that keeps v0.2 packets readable.
+- Tenant field contracts: typed fields, per-source display order and trust, with synthetic example contracts. Schema v2 events use the tenant contract; v1 events replay exactly as before.
+- Semantic digest option: equivalent normalized values replay instead of conflicting. The default digest stays raw.
+- Unanimous review policy: a packet is approved automatically only when required fields agree and no AI source took part. The decision is recorded as a versioned review. Off by default.
+- Authenticated tenant webhook ingress with three modes: HMAC-signed bodies with a five-minute clock window and key rotation, a shared token header for Zoho-style webhooks, and per-tenant API keys stored only as hashes.
+- Request limits: body size, JSON depth, read time and a per-tenant rate limit. Unauthenticated callers get a flat 401 and no parse or validation detail.
+- Encrypted raw-event ledger with 30-day body erasure that keeps the digest, scope, time and auth mode for audit.
+- Numeric normalization accepts ASCII digits only and rejects exponent notation, underscores and Arabic-Indic digits.
+- Threat model and a decision record for webhook authentication.
+
+### Changed
+- The pure core may not import the legacy service and storage modules, as well as the new layers.
+
+### Fixed
+- A non-ASCII credential header no longer crashes the webhook with a 500. It returns 401.
+- A raw-ledger failure can no longer leave a processed event without its raw record.

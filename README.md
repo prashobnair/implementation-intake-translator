@@ -2,7 +2,7 @@
 
 Turn conflicting kickoff facts into a reviewable, replay-safe handoff.
 
-[![Python checks](https://github.com/prashobnair/implementation-intake-translator/actions/workflows/python.yml/badge.svg)](https://github.com/prashobnair/implementation-intake-translator/actions/workflows/python.yml) [![Coverage: 81% overall, 98% core (v0.2.1)](https://img.shields.io/badge/coverage-81%25%20overall%20%7C%2098%25%20core-brightgreen)](https://github.com/prashobnair/implementation-intake-translator/actions/runs/36302932422) ![Python](https://img.shields.io/badge/Python-3.11--3.13-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Release](https://img.shields.io/badge/release-v0.2.1-informational)
+[![Python checks](https://github.com/prashobnair/implementation-intake-translator/actions/workflows/python.yml/badge.svg)](https://github.com/prashobnair/implementation-intake-translator/actions/workflows/python.yml) [![Coverage: 81% overall, 98% core (v0.2.1)](https://img.shields.io/badge/coverage-81%25%20overall%20%7C%2098%25%20core-brightgreen)](https://github.com/prashobnair/implementation-intake-translator/actions/runs/36302932422) ![Python](https://img.shields.io/badge/Python-3.11--3.13-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Release](https://img.shields.io/badge/release-v0.3.0-informational)
 
 ## The problem
 
@@ -21,6 +21,10 @@ repeat delivery from creating a second local mock project.
 - Deduplicates by event ID and rejects reuse with changed content.
 - Holds a local mock projection until a reviewer picks a source for each conflict.
 - Provides a disposable demo and static read-only dashboard.
+- Accepts authenticated tenant webhooks. Three modes: HMAC-signed body with a
+  five-minute window and key rotation, shared token header (Zoho custom
+  header), and per-tenant API key. Bad credentials get a flat 401. Raw bodies
+  are stored encrypted and erased after 30 days.
 
 ## Quickstart (offline)
 
@@ -40,7 +44,7 @@ sample outcomes. For negative inputs and expected outputs see
 
 ## Live mode (read-only)
 
-Not available in version 0.2.1. The illustrative CRM source is a JSON fixture,
+Not available in version 0.3.0. The illustrative CRM source is a JSON fixture,
 not a Zoho connection. A future adapter will require separate setup and verified
 read-only API contracts. Do not connect a work or customer account to this demo.
 
