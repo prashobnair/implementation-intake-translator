@@ -124,7 +124,7 @@ def test_ui2_matrix_marks_conflict_and_missing_and_shows_evidence(page):
         row.locator("blockquote").inner_text()
         == "Customer said they now expect to launch on 2027-03-15."
     )
-    page.screenshot(path=str(SHOTS / "case-matrix.png"), full_page=True)
+    page.screenshot(path=str(SHOTS / "2-case-matrix.png"), full_page=True)
 
 
 def test_ui2_decisions_and_stale_version_message(page):
@@ -182,7 +182,7 @@ def test_ui3_axe_has_no_violations(server, view):
             pg.get_by_role("link", name="case-done").click()
             expect(pg.get_by_role("heading", name="Case case-done")).to_be_visible()
         if view == "queue":
-            pg.screenshot(path=str(SHOTS / "queue.png"), full_page=True)
+            pg.screenshot(path=str(SHOTS / "1-queue.png"), full_page=True)
         result = Axe().run(pg)
         assert result.violations_count == 0, result.generate_report()
         browser.close()
