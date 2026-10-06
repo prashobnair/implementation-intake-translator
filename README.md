@@ -21,6 +21,9 @@ repeat delivery from creating a second local mock project.
 - Deduplicates by event ID and rejects reuse with changed content.
 - Holds a local mock projection until a reviewer picks a source for each conflict.
 - Provides a disposable demo and static read-only dashboard.
+- Review API v2 (library and HTTP, no UI yet): accounts and roles per tenant, versioned
+  decisions with a 409 on stale versions, amendments with a diff and a hash-chained
+  audit log. See [API contracts](docs/API_CONTRACTS.md).
 - Accepts authenticated tenant webhooks. Three modes: HMAC-signed body with a
   five-minute window and key rotation, shared token header (Zoho custom
   header), and per-tenant API key. Bad credentials get a flat 401. Raw bodies
