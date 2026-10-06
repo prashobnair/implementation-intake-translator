@@ -8,7 +8,9 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, RedirectResponse, Response
+from pathlib import Path
+
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from sqlalchemy.engine import Engine
 
 from ..contracts import Contract
@@ -18,6 +20,8 @@ from . import accounts, audit, service
 from .oidc import OidcProvider, PendingLogins
 from .roles import allowed, require
 
+UI_DIR = Path(__file__).parent / "ui"
+UI_FILES = {"index.html": "text/html", "app.js": "text/javascript", "app.css": "text/css"}
 COOKIE = "iit_session"
 MAX_BODY = 64 * 1024
 
@@ -87,6 +91,13 @@ def create_review_app(
             )
         return HTTPException(status_code=status, detail=exc.code)
 
+    def ui_headers() -> dict[str, str]:
+        return {
+            "Content-Security-Policy": "default-src 'self'; frame-ancestors 'none'",
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store",
+        }
+
     def start_session(username: str) -> JSONResponse:
         token, csrf = accounts.create_session(
             engine, username, ttl_seconds=session_ttl_seconds, now=now()
@@ -113,6 +124,17 @@ def create_review_app(
     async def http_error(_: Request, exc: HTTPException) -> JSONResponse:
         body = exc.detail if isinstance(exc.detail, dict) else {"detail": exc.detail}
         return JSONResponse(body, status_code=exc.status_code)
+
+    @app.get("/")
+    @app.get("/ui/")
+    async def ui_index() -> FileResponse:
+        return FileResponse(UI_DIR / "index.html", media_type="text/html", headers=ui_headers())
+
+    @app.get("/ui/{name}")
+    async def ui_asset(name: str) -> FileResponse:
+        if name not in UI_FILES:
+            raise HTTPException(status_code=404, detail="not_found")
+        return FileResponse(UI_DIR / name, media_type=UI_FILES[name], headers=ui_headers())
 
     @app.post("/login")
     async def login(request: Request) -> JSONResponse:
@@ -163,16 +185,28 @@ def create_review_app(
     async def cases(tenant_id: str, request: Request) -> dict[str, Any]:
         role = tenant_role(session_of(request, unsafe=False), tenant_id)
         require(role, "view")
-        return {"cases": service.list_cases(engine, tenant_id)}
+        return {
+            "now": now().isoformat(),
+            "cases": service.list_cases(engine, tenant_id, contracts[tenant_id]),
+        }
 
     @app.get("/tenants/{tenant_id}/cases/{event_id}")
     async def case(tenant_id: str, event_id: str, request: Request) -> dict[str, Any]:
         role = tenant_role(session_of(request, unsafe=False), tenant_id)
         require(role, "view")
         try:
-            return service.view_case(engine, tenant_id, event_id)
+            view = service.view_case(engine, tenant_id, event_id)
         except IntakeError as exc:
             raise fail(exc) from exc
+        contract = contracts[tenant_id]
+        when = service.received_at(engine, tenant_id, event_id)
+        view["received_at"] = when.isoformat() if when is not None else None
+        view["fields"] = [
+            {"name": name, "required": rule.required} for name, rule in contract.fields.items()
+        ]
+        view["sources"] = {name: src.trust for name, src in contract.sources.items()}
+        view["role"] = role
+        return view
 
     @app.post("/tenants/{tenant_id}/cases/{event_id}/decisions")
     async def decide(tenant_id: str, event_id: str, request: Request) -> JSONResponse:
