@@ -256,11 +256,19 @@ def test_rv2_http_roles_and_tenant_isolation(tmp_path):
     hidden = outsider.get(f"/tenants/{T}/cases")
     assert (hidden.status_code, hidden.json()) == (404, {"detail": "unknown_route"})
     assert decide(outsider, out_csrf, "case-conflict", CHOOSE).status_code == 404
-    assert outsider.get("/tenants/tenant-b/cases").json() == {
-        "cases": [
-            {"event_id": "case-agree", "status": "needs_review", "version": 0, "amendment": None}
-        ]
-    }
+    own = outsider.get("/tenants/tenant-b/cases").json()
+    assert own["cases"] == [
+        {
+            "event_id": "case-agree",
+            "status": "needs_review",
+            "version": 0,
+            "amendment": None,
+            "customer": "Marigold Labs",
+            "received_at": None,
+            "has_ai": False,
+            "has_override": False,
+        }
+    ]
 
 
 def test_rv2_two_person_override_needs_approver(tmp_path):
