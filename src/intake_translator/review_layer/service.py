@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import func, select
@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from ..contracts import Contract, comparison_key, normalize
 from ..core import IntakeError
-from ..storage.schema import Amendment, ProcessedEvent, ReviewVersion
+from ..storage.schema import Amendment, ProcessedEvent, RawEvent, ReviewVersion
 from .audit import append_in_session
 from .roles import allowed, require
 
@@ -95,16 +95,72 @@ def view_case(engine: Engine, tenant_id: str, event_id: str) -> dict[str, Any]:
         }
 
 
-def list_cases(engine: Engine, tenant_id: str) -> list[dict[str, Any]]:
+def received_at(engine: Engine, tenant_id: str, event_id: str) -> datetime | None:
+    """First time the tenant's webhook accepted this event; None when no raw row exists."""
+    with Session(engine) as session:
+        value = session.scalar(
+            select(func.min(RawEvent.received_at)).where(
+                RawEvent.tenant_id == tenant_id, RawEvent.event_id == event_id
+            )
+        )
+    if value is not None and value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)  # stored naive, always UTC
+    return value
+
+
+def _has_ai(packet: dict[str, Any], contract: Contract) -> bool:
+    options = [o for group in packet.get("candidates", {}).values() for o in group]
+    return any(
+        o["source"] in contract.sources and contract.sources[o["source"]].trust == "ai"
+        for o in options
+    )
+
+
+def _has_override(session: Session, tenant_id: str, event_id: str) -> bool:
+    rows = session.scalars(
+        select(ReviewVersion.decisions_json).where(
+            ReviewVersion.tenant_id == tenant_id, ReviewVersion.event_id == event_id
+        )
+    ).all()
+    for raw in rows:
+        decisions = json.loads(raw)
+        if any(isinstance(d, dict) and d.get("type") == "override" for d in decisions.values()):
+            return True
+    return False
+
+
+def list_cases(
+    engine: Engine, tenant_id: str, contract: Contract | None = None
+) -> list[dict[str, Any]]:
+    """Queue rows. With a contract each row also carries the filterable queue facts."""
     with Session(engine) as session:
         ids = session.scalars(
             select(ProcessedEvent.event_id)
             .where(ProcessedEvent.tenant_id == tenant_id)
             .order_by(ProcessedEvent.event_id)
         ).all()
-    return [
-        {k: v for k, v in view_case(engine, tenant_id, i).items() if k != "packet"} for i in ids
-    ]
+    rows: list[dict[str, Any]] = []
+    for event_id in ids:
+        full = view_case(engine, tenant_id, event_id)
+        row = {k: v for k, v in full.items() if k != "packet"}
+        if contract is not None:
+            packet = full["packet"]
+            names = packet["resolved"].get("customer_name")
+            if names is None:
+                names = next(
+                    (o["value"] for o in packet["candidates"].get("customer_name", [])), ""
+                )
+            when = received_at(engine, tenant_id, event_id)
+            with Session(engine) as session:
+                override = _has_override(session, tenant_id, event_id)
+            row.update(
+                customer=names,
+                received_at=when.isoformat() if when is not None else None,
+                has_ai=_has_ai(packet, contract),
+                has_override=override,
+            )
+        rows.append(row)
+    return rows
 
 
 def _targets(packet: dict[str, Any], contract: Contract) -> list[str]:
