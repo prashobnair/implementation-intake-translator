@@ -12,3 +12,15 @@
 | Denial of service | Ingress | Default 16 KiB body limit, depth cap, per-tenant token bucket 429 | Per-request stream timeout implemented; proxy cap and distributed limiter needed before public deployment |
 
 No real customer or employer data, secrets or live Zoho writes belong in fixtures or CI.
+
+## Review API v2 (sessions and audit)
+
+| Threat | Control | Test |
+|---|---|---|
+| Password guessing | argon2id hashes, 12-character minimum, per-username login bucket (429), identical 401 for unknown user and wrong password | `test_rv1_login_cookie_flags_and_uniform_failure`, `test_rv1_session_expiry_and_login_rate_limit` |
+| Cross-site request forgery | session-bound CSRF token required on every unsafe method | `test_rv1_csrf_required_on_unsafe_requests_and_logout` |
+| Session theft or reuse | random tokens stored as SHA-256, HttpOnly, Secure, SameSite=Lax cookie, server-side expiry and logout | same tests |
+| Privilege escalation, cross-tenant access | per-tenant roles checked on every route, 404 for non-members | `test_rv2_authorization_matrix_exact`, `test_rv2_http_roles_and_tenant_isolation` |
+| Silent edit of review history | hash-chained audit rows, `GET /audit/verify` | `test_rv6_audit_chain_records_actions_and_detects_tampering` |
+
+Residual risks: the audit chain detects edits and deletions but not truncation of the newest rows, and an attacker with database write access can recompute it. OIDC sign-in state is kept in memory, so it works for one process only. Login throttling is per process.
