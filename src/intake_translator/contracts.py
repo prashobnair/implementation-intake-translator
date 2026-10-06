@@ -39,6 +39,7 @@ class Contract:
     sources: dict[str, Source]
     digest: Literal["raw", "normalized"]
     auto_approve_when_unanimous: bool
+    two_person_override: bool = False
 
 
 def parse_contract(text: str) -> Contract:
@@ -55,7 +56,13 @@ def parse_contract(text: str) -> Contract:
         raise IntakeError("invalid_contract", "fields and sources must be objects")
     if not data["fields"] or not data["sources"]:
         raise IntakeError("invalid_contract", "fields and sources must not be empty")
-    if set(data) - {"fields", "sources", "idempotency", "auto_approve_when_unanimous"}:
+    if set(data) - {
+        "fields",
+        "sources",
+        "idempotency",
+        "auto_approve_when_unanimous",
+        "two_person_override",
+    }:
         raise IntakeError("invalid_contract", "unknown contract option")
     fields: dict[str, Field] = {}
     for name, rule in data["fields"].items():
@@ -116,7 +123,10 @@ def parse_contract(text: str) -> Contract:
     auto = data.get("auto_approve_when_unanimous", False)
     if type(auto) is not bool:
         raise IntakeError("invalid_contract", "auto_approve_when_unanimous must be boolean")
-    return Contract(fields, sources, digest_data["digest"], auto)
+    two = data.get("two_person_override", False)
+    if type(two) is not bool:
+        raise IntakeError("invalid_contract", "two_person_override must be boolean")
+    return Contract(fields, sources, digest_data["digest"], auto, two)
 
 
 def load_contract(path: Path) -> Contract:
