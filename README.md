@@ -90,9 +90,9 @@ See [the architecture](docs/ARCHITECTURE.md),
 
 The review API serves a small browser UI at `/ui/` (plain HTML and JavaScript, no build step, no CDN). Sign in, filter the queue, then decide each conflicting or missing field.
 
-![Review queue with filters and SLA badges](docs/screenshots/queue.png)
+![Review queue with filters and SLA badges](docs/screenshots/1-queue.png)
 
-![Case page: field by source matrix, evidence popover and decision controls](docs/screenshots/case-matrix.png)
+![Case page: field by source matrix, evidence popover and decision controls](docs/screenshots/2-case-matrix.png)
 
 - Queue: filters for status, tenant, age, AI source and override, a customer search, and SLA badges (under 4 hours on time, 4 to 24 at risk, over 24 breached). Badges carry text, never color alone.
 - Case: a field by source matrix. Conflicts and missing required fields are labeled in text as well as shaded. Each cell shows the value, source, trust and fetched time, with an Evidence button that opens the quoted passage when a source has one.
