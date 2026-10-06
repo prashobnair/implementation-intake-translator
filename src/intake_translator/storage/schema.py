@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
-from sqlalchemy import Index, LargeBinary, String, Text, create_engine, event
+from sqlalchemy import Boolean, Index, LargeBinary, String, Text, create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.engine import Engine
 
@@ -31,6 +31,67 @@ class ReviewVersion(Base):
     actor: Mapped[str] = mapped_column(String(100), nullable=False)
     decisions_json: Mapped[str] = mapped_column(Text, nullable=False)
     packet_json: Mapped[str] = mapped_column(Text, nullable=False)
+    # Review workflow v2 (migration 0002). Rows written by v0.3 keep the defaults.
+    parent_version: Mapped[int | None] = mapped_column(nullable=True)
+    state: Mapped[str] = mapped_column(String(20), nullable=False, default="approved")
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class Account(Base):
+    __tablename__ = "accounts"
+    username: Mapped[str] = mapped_column(String(100), primary_key=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+
+class Membership(Base):
+    __tablename__ = "memberships"
+    tenant_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    username: Mapped[str] = mapped_column(String(100), primary_key=True)
+    role: Mapped[str] = mapped_column(String(20), nullable=False)
+
+
+class AuthSession(Base):
+    __tablename__ = "auth_sessions"
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    username: Mapped[str] = mapped_column(String(100), nullable=False)
+    csrf_token: Mapped[str] = mapped_column(String(64), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(nullable=False)
+
+
+class OidcIdentity(Base):
+    __tablename__ = "oidc_identities"
+    provider: Mapped[str] = mapped_column(String(30), primary_key=True)
+    subject: Mapped[str] = mapped_column(String(200), primary_key=True)
+    username: Mapped[str] = mapped_column(String(100), nullable=False)
+
+
+class Amendment(Base):
+    __tablename__ = "case_amendments"
+    tenant_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    event_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    seq: Mapped[int] = mapped_column(primary_key=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    diff_json: Mapped[str] = mapped_column(Text, nullable=False)
+    packet_json: Mapped[str] = mapped_column(Text, nullable=False)
+    base_version: Mapped[int] = mapped_column(nullable=False)
+
+
+class AuditEntry(Base):
+    __tablename__ = "audit_log"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    tenant_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    ts: Mapped[str] = mapped_column(String(40), nullable=False)
+    actor: Mapped[str] = mapped_column(String(100), nullable=False)
+    action: Mapped[str] = mapped_column(String(30), nullable=False)
+    subject: Mapped[str] = mapped_column(String(200), nullable=False)
+    detail_json: Mapped[str] = mapped_column(Text, nullable=False)
+    prev_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    __table_args__ = (Index("ix_audit_tenant_id", "tenant_id", "id"),)
 
 
 class RawEvent(Base):
