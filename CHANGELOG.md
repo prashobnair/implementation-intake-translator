@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The project follows
 ## [Unreleased]
 
 ### Added
+- Review UI at `/ui/`: queue with filters, SLA badges and customer search; case page with a field by source matrix, evidence popovers, decision controls and an amendment diff.
+- Playwright end-to-end tests with an axe-core accessibility check, and a CI job for them. New optional `e2e` extra.
 - Review workflow v2 API: local accounts with argon2id passwords, secure session cookies with CSRF checks, optional GitHub or Google sign-in for pre-linked accounts, and per-tenant roles (viewer, reviewer, approver, admin).
 - Typed field decisions (choose a source, override with a written rationale, defer with a customer question), versioned reviews with optimistic concurrency (a stale version returns 409 and the current version), and an optional two-person rule for overrides.
 - Amendments: new evidence on an approved case reopens it with a field-level diff; approving creates the next version.
