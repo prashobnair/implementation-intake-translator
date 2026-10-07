@@ -30,8 +30,10 @@ def constant_time_equal(left: str, right: str) -> bool:
 def create_account(
     engine: Engine, username: str, password: str | None, memberships: dict[str, str]
 ) -> None:
-    if not username or len(username) > 100 or not username.isascii():
-        raise IntakeError("invalid_account", "username must be 1-100 ASCII characters")
+    if not username or len(username) > 100 or not username.isascii() or ":" in username:
+        raise IntakeError(
+            "invalid_account", "username must be 1-100 ASCII characters without colons"
+        )
     if password is not None and len(password) < MIN_PASSWORD:
         raise IntakeError("invalid_account", f"password needs at least {MIN_PASSWORD} characters")
     with Session(engine) as session, session.begin():
