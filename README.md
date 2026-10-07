@@ -2,7 +2,14 @@
 
 Turn conflicting kickoff facts into a reviewable, replay-safe handoff.
 
-[![Python checks](https://github.com/prashobnair/implementation-intake-translator/actions/workflows/python.yml/badge.svg)](https://github.com/prashobnair/implementation-intake-translator/actions/workflows/python.yml) [![Coverage: 81% overall, 98% core (v0.2.1)](https://img.shields.io/badge/coverage-81%25%20overall%20%7C%2098%25%20core-brightgreen)](https://github.com/prashobnair/implementation-intake-translator/actions/runs/36302932422) ![Python](https://img.shields.io/badge/Python-3.11--3.13-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Release](https://img.shields.io/badge/release-v0.3.0-informational)
+[![Python checks](https://github.com/prashobnair/implementation-intake-translator/actions/workflows/python.yml/badge.svg)](https://github.com/prashobnair/implementation-intake-translator/actions/workflows/python.yml) [![Coverage: 81% overall, 98% core (v0.2.1)](https://img.shields.io/badge/coverage-81%25%20overall%20%7C%2098%25%20core-brightgreen)](https://github.com/prashobnair/implementation-intake-translator/actions/runs/36302932422) ![Python](https://img.shields.io/badge/Python-3.11--3.13-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Release](https://img.shields.io/badge/release-v0.4.0-informational)
+
+## v0.4.0
+
+Review workflow v2 adds tenant roles, versioned decisions, amendments and an
+audit log, with a browser review UI tested by Playwright and axe-core. Stored
+account names cannot contain a colon; the local CLI actor is never an account.
+See [release notes](CHANGELOG.md#040---2026-10-07) and the review UI screenshots below.
 
 ## The problem
 

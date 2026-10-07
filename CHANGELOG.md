@@ -3,7 +3,7 @@
 All notable changes to this project are documented here. The project follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and semantic versioning.
 
-## [Unreleased]
+## [0.4.0] - 2026-10-07
 
 ### Added
 - Review UI at `/ui/`: queue with filters, SLA badges and customer search; case page with a field by source matrix, evidence popovers, decision controls and an amendment diff.
@@ -13,6 +13,9 @@ All notable changes to this project are documented here. The project follows
 - Amendments: new evidence on an approved case reopens it with a field-level diff; approving creates the next version.
 - Hash-chained audit log per tenant with `GET /audit/verify`.
 - Alembic migration 0002 for the new tables. Existing v0.3 review rows stay valid.
+
+### Fixed
+- Account creation rejects reserved actor names and any username containing a colon, keeping the local CLI actor separate from stored accounts.
 
 ## [0.3.0] - 2026-10-01
 
