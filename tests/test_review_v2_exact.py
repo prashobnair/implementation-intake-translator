@@ -127,6 +127,27 @@ def test_rv1_argon2_hash_and_password_policy(tmp_path):
     assert dup.value.code == "account_exists"
 
 
+@pytest.mark.parametrize(
+    "username", ["cli:local", "system:admin", ":reviewer", "reviewer:", "a:b:c"]
+)
+@pytest.mark.parametrize("password", [PASSWORD, None])
+def test_rv1_create_account_rejects_colon_usernames_without_writes(tmp_path, username, password):
+    db = tmp_path / "accounts.sqlite3"
+    upgrade(db)
+    engine = engine_for(f"sqlite:///{db}")
+    with pytest.raises(IntakeError) as rejected:
+        accounts.create_account(engine, username, password, {T: "admin"})
+    assert (rejected.value.code, rejected.value.detail) == (
+        "invalid_account",
+        "username must be 1-100 ASCII characters without colons",
+    )
+    with engine.connect() as conn:
+        assert conn.execute(text("SELECT username FROM accounts")).all() == []
+        assert conn.execute(text("SELECT username FROM memberships")).all() == []
+    assert accounts.verify_login(engine, username, PASSWORD) is False
+    assert accounts.role_for(engine, username, T) is None
+
+
 def test_rv1_login_cookie_flags_and_uniform_failure(tmp_path):
     engine, contracts = world(tmp_path)
     client = client_for(engine, contracts)
