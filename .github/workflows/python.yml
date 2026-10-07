@@ -65,3 +65,11 @@ jobs:
       - run: uv sync --locked --python 3.12 --extra dev
       - run: uv run lint-imports
       - run: uv run --python 3.12 pytest -q tests/test_storage_v2.py tests/test_fastapi_arch.py
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --locked --python 3.12 --extra dev --extra e2e
+      - run: uv run playwright install --with-deps chromium
+      - run: RUN_E2E=1 uv run --python 3.12 pytest -q tests/e2e -p no:cacheprovider

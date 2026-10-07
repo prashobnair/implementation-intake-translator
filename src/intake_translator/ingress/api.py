@@ -15,6 +15,7 @@ from sqlalchemy.engine import Engine
 from ..contracts import Contract
 from ..core import IntakeError
 from ..field_service import process_contract_event
+from ..review_layer.audit import record_audit
 from ..storage.machine_keys import verify_key
 from ..storage.raw import append_raw
 from ..storage.repository import SqlRepository
@@ -140,6 +141,14 @@ def create_ingress_app(
         except IntakeError as exc:
             code = 409 if exc.code == "event_id_reused" else 422
             raise HTTPException(status_code=code, detail=exc.code) from exc
+        record_audit(
+            engine,
+            tenant_id,
+            f"webhook:{mode}",
+            "ingest",
+            event_id,
+            {"replayed": replayed, "raw_event_id": raw_id, "source": source},
+        )
         return JSONResponse(
             {**packet, "replayed": replayed, "auth_mode": mode, "raw_event_id": raw_id},
             status_code=200 if replayed else 201,

@@ -21,6 +21,9 @@ repeat delivery from creating a second local mock project.
 - Deduplicates by event ID and rejects reuse with changed content.
 - Holds a local mock projection until a reviewer picks a source for each conflict.
 - Provides a disposable demo and static read-only dashboard.
+- Review API v2 and a browser review UI (queue and case pages at `/ui/`): accounts and roles per tenant, versioned
+  decisions with a 409 on stale versions, amendments with a diff and a hash-chained
+  audit log. See [API contracts](docs/API_CONTRACTS.md).
 - Accepts authenticated tenant webhooks. Three modes: HMAC-signed body with a
   five-minute window and key rotation, shared token header (Zoho custom
   header), and per-tenant API key. Bad credentials get a flat 401. Raw bodies
@@ -82,6 +85,32 @@ See [the architecture](docs/ARCHITECTURE.md),
 > automatic approval. The only downstream write is to a disposable local SQLite
 > mock after explicit review. The HTTP adapter has no authentication, so do not
 > expose or tunnel it. There is no production deployment claim.
+
+## Review UI
+
+The review API serves a small browser UI at `/ui/` (plain HTML and JavaScript, no build step, no CDN). Sign in, filter the queue, then decide each conflicting or missing field.
+
+![Review queue with filters and SLA badges](docs/screenshots/1-queue.png)
+
+![Case page: field by source matrix, evidence popover and decision controls](docs/screenshots/2-case-matrix.png)
+
+- Queue: filters for status, tenant, age, AI source and override, a customer search, and SLA badges (under 4 hours on time, 4 to 24 at risk, over 24 breached). Badges carry text, never color alone.
+- Case: a field by source matrix. Conflicts and missing required fields are labeled in text as well as shaded. Each cell shows the value, source, trust and fetched time, with an Evidence button that opens the quoted passage when a source has one.
+- Decisions: choose a source, override with a written rationale of 20 or more characters, or defer with a customer question. A stale version shows a clear message instead of overwriting.
+
+Try it with synthetic data (needs `pip install -e ".[dev,e2e]"`):
+
+```bash
+python - <<'PY'
+import tempfile, pathlib, uvicorn
+from tests.e2e.seed import build
+from intake_translator.review_layer.api import create_review_app
+engine, contracts = build(pathlib.Path(tempfile.mkdtemp()) / "demo.sqlite3")
+uvicorn.run(create_review_app(engine, contracts, secure_cookies=False), port=8000)
+PY
+```
+
+Open http://127.0.0.1:8000/ui/ and sign in as `rita` with password `correct horse battery`. Browser tests run with `playwright install chromium` then `RUN_E2E=1 pytest tests/e2e`; they include an axe-core check for each page and regenerate the screenshots above.
 
 ## Roadmap, contributing and license
 
